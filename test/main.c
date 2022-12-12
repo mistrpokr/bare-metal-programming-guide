@@ -31,6 +31,44 @@ enum
   GPIO_MODE_ANALOG
 };
 
+struct systick
+{
+  volatile uint32_t CTRL, LOAD, VAL, CALIB;
+};
+
+#define SYSTICK ((struct systick*)0xe000e010)
+
+static inline void
+systick_init(uint32_t ticks)
+{
+  if ((ticks - 1) > 0xffffff)
+    return; // Systick timer is 24 bit
+  SYSTICK->LOAD = ticks - 1;
+  SYSTICK->VAL = 0;
+  SYSTICK->CTRL = BIT(0) | BIT(1) | BIT(2); // Enable Systick
+  RCC->APB2ENR |= BIT(14);                  // Enable SYSCFG
+}
+
+static volatile uint32_t s_ticks;
+void
+SysTick_Handler(void)
+{
+  s_ticks++;
+}
+
+bool
+timer_expired(uint32_t* t, uint32_t period, uint32_t now)
+{
+  if (now + period < *t)
+    *t = 0;
+  if (*t == 0)
+    *t = now + period;
+  if (*t > now)
+    return false;
+  *t = (now - *t) > period ? now + period : *t + period;
+  return true;
+}
+
 static inline void
 gpio_set_mode(uint16_t pin, uint8_t mode)
 {
@@ -65,13 +103,21 @@ main(void)
   gpio_set_mode(led_blue, GPIO_MODE_OUTPUT);
   gpio_set_mode(led_red, GPIO_MODE_OUTPUT);
 
+  systick_init(16000000 / 1000);
+  uint32_t timer, period = 250;
+
   while (1) {
-    gpio_write(led_blue, true);
-    gpio_write(led_red, false);
-    spin(999999);
-    gpio_write(led_blue, false);
-    gpio_write(led_red, true);
-    spin(999999);
+    if (timer_expired(&timer, period, s_ticks)) {
+      static bool on;
+      gpio_write(led_blue, on);
+      on = !on;
+    }
+
+    // gpio_write(led_blue, true);
+    // gpio_write(led_red, false);
+
+    // gpio_write(led_blue, false);
+    // gpio_write(led_red, true);
   }
 
   return 0;
@@ -96,4 +142,6 @@ _reset(void)
     (void)0;
 }
 
-__attribute__((section(".vectors"))) void (*tab[16 + 91])(void) = { 0, _reset };
+__attribute__((section(".vectors"))) void (*tab[16 + 91])(void) = {
+  0, _reset, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SysTick_Handler
+};
