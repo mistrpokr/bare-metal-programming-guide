@@ -1,18 +1,18 @@
 CFLAGS  ?=  -W -Wall -Wextra -Werror -Wundef -Wshadow -Wdouble-promotion \
             -Wformat-truncation -fno-common -Wconversion \
             -g3 -O0 -ffunction-sections -fdata-sections -I. \
-            -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 
+            -mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 LDFLAGS ?= -Tlink.ld -nostartfiles -nostdlib --specs nano.specs -lc -lgcc -Wl,--gc-sections -Wl,-Map=$@.map
-SOURCES = main.c 
+SOURCES = main.c startup.c syscalls.c
 
-build: firmware.elf firmware.bin main.s
+build: firmware.elf firmware.bin
 
 firmware.elf: $(SOURCES)
 	arm-none-eabi-gcc $(SOURCES) $(CFLAGS) $(LDFLAGS) -o $@
 
-main.s: $(SOURCES)
-	arm-none-eabi-gcc -S -o $@ $(SOURCES)
+# main.s: $(SOURCES)
+# arm-none-eabi-gcc -S -o $@ $(SOURCES)
 
 firmware.bin: firmware.elf
 	arm-none-eabi-objcopy -O binary $< $@
@@ -23,4 +23,4 @@ flash: firmware.bin
 	-c "program firmware.elf reset verify exit"
 
 clean:
-	rm -rf firmware.* main.s
+	rm -rf firmware.*

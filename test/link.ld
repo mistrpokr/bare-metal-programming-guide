@@ -29,4 +29,8 @@ SECTIONS {
         *(.bss SORT(.bss.*) COMMON)
         _ebss = .;
     } > sram
+
+
+    . = ALIGN(8);
+    _end = .;     /* for cmsis_gcc.h and _sbrk syscall */
 }
