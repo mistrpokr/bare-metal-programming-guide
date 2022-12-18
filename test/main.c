@@ -31,7 +31,7 @@ main(void)
 
       uart_write_buffer(UART3, "(write_buffer)\r\n", 4);
       printf("Hi! \r\n");
-      printf("Counter = %d, Counter32 = %d\r\n", ct++, ct_32++);
+      printf("Counter = %d, Counter32 = %ld\r\n", ct++, ct_32++);
     }
   }
 
